@@ -1,0 +1,14 @@
+{
+	"namespace": "Amogusbegins",
+	"displayName": "Amogus begins",
+	"version": "1.0.0",
+	"synchronyVersion": "3.3.0",
+	"description": "No description given.",
+	"author": "Tufwfo",
+	"dependencies": {},
+	"api": {"scriptPath":""},
+	"icon": "AmogusbeginsIcon.png",
+	"banner": "AmogusbeginsBanner.png",
+	"tags": [],
+	"name": "Amogusbegins"
+}

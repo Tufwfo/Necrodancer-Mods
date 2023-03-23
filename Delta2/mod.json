@@ -1,0 +1,20 @@
+{
+	"namespace": "Delta2",
+	"displayName": "Delta 2",
+	"version": "1.0.2",
+	"synchronyVersion": "3.6.0",
+	"description": "Remember the DeltaNecrodancer mod from the Steam workshop? This isn't it. This mod increases the BPM every beat and keeps the BPM through levels.",
+	"author": "Tufwfo",
+	"dependencies": {},
+	"api": {"scriptPath":""},
+	"icon": "Delta2Icon.png",
+	"banner": "Delta2Banner.png",
+	"tags": [],
+	"name": "Delta2_io_2849509",
+	"changelog": "",
+	"homepageURL": "https://mod.io/g/crypt/m/delta2",
+	"modioID": "2849509",
+	"modioUserID": 1617400,
+	"pendingVersion": "1.0.2",
+	"visibility": 0
+}

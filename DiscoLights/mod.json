@@ -1,0 +1,19 @@
+{
+	"namespace": "DiscoLights",
+	"displayName": "Disco Lights",
+	"version": "1.0.0",
+	"synchronyVersion": "3.1.3",
+	"description": "Enemies are only visible tiles lit up by disco floor. Start with nazar charm so invisible spirits won't spawn behind you.",
+	"author": "Tufwfo",
+	"dependencies": {},
+	"api": {"scriptPath":""},
+	"icon": "DiscoLightsIcon.png",
+	"banner": "DiscoLightsBanner.png",
+	"tags": [],
+	"name": "DiscoLights_io_2297038",
+	"homepageURL": "https://mod.io/g/crypt/m/discolights",
+	"modioID": "2297038",
+	"modioUserID": 1617400,
+	"pendingVersion": "1.0.0",
+	"visibility": 0
+}

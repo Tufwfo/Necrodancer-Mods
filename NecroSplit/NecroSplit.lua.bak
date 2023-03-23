@@ -1,0 +1,1215 @@
+print("Hello world, this is NecroSplit!")
+
+local hud = require "necro.render.hud.HUD"
+local Menu = require "necro.menu.Menu"
+local rng = require "necro.game.system.RNG"
+local timer = require "system.utils.Timer"
+local ui = require "necro.render.UI"
+local Input = require "system.game.Input"
+local CustomActions = require "necro.game.data.CustomActions"
+local utils = require "system.utils.Utilities"
+local Settings = require "necro.config.Settings"
+local Enum = require "system.utils.Enum"
+local SettingsMenu = require "necro.menu.settings.SettingsMenu"
+local settingsStorage = require "necro.config.SettingsStorage"
+local CurrentLevel = require "necro.game.level.CurrentLevel"
+local RemoteSettings = require "necro.config.RemoteSettings"
+local SpeedrunTimer = require "necro.client.SpeedrunTimer"
+local Player = require "necro.game.character.Player"
+
+local smallLowercaseFont = utils.mergeDefaults(ui.Font.SMALL, {uppercase = false})
+
+savedSplits = Settings.user.table {}
+averages = Settings.user.table {}
+
+local splitGroup = {}
+local currentSplitGroup = 0
+local splitName = 0
+local splitType = 0
+local clearType = 0
+local depth = 0
+local level = 0
+local mode = 0
+local splitTimes = {}
+local individualSplitTime = {}
+local isDead = false
+local inGameTime = 0
+local runStartTime = 0
+local addedSplits = 0
+local accurateInGameTime = 0
+local presets = {{ "All Chars Sync", 0, { "Mary", 0, 0, 0, 0, 2, 0, 0 }, { "Chaunter", 0, 0, 0, 0, 2, 0, 0 }, { "Aria", 0, 0, 0, 0, 2, 0, 0 }, { "Monk", 0, 0, 0, 0, 2, 0, 0 }, { "Bolt", 0, 0, 0, 0, 2, 0, 0 }, { "Dove", 0, 0, 0, 0, 2, 0, 0 }, { "Tempo", 0, 0, 0, 0, 2, 0, 0 }, { "Reaper", 0, 0, 0, 0, 2, 0, 0 }, { "Suzu", 0, 0, 0, 0, 2, 0, 0 }, { "Bard", 0, 0, 0, 0, 2, 0, 0 }, { "Melody", 0, 0, 0, 0, 2, 0, 0 }, { "Eli", 0, 0, 0, 0, 2, 0, 0 }, { "Dorian", 0, 0, 0, 0, 2, 0, 0 }, { "Diamond", 0, 0, 0, 0, 2, 0, 0 }, { "Klarinetta", 0, 0, 0, 0, 2, 0, 0 }, { "Nocturna", 0, 0, 0, 0, 2, 0, 0 }, { "Cadence", 0, 0, 0, 0, 2, 0, 0 } },{ "All Chars Amp", 0, { "Mary", 0, 0, 0, 0, 2, 0, 0 }, { "Aria", 0, 0, 0, 0, 2, 0, 0 }, { "Monk", 0, 0, 0, 0, 2, 0, 0 }, { "Bolt", 0, 0, 0, 0, 2, 0, 0 }, { "Dove", 0, 0, 0, 0, 2, 0, 0 }, { "Tempo", 0, 0, 0, 0, 2, 0, 0 }, { "Bard", 0, 0, 0, 0, 2, 0, 0 }, { "Melody", 0, 0, 0, 0, 2, 0, 0 }, { "Eli", 0, 0, 0, 0, 2, 0, 0 }, { "Dorian", 0, 0, 0, 0, 2, 0, 0 }, { "Diamond", 0, 0, 0, 0, 2, 0, 0 }, { "Nocturna", 0, 0, 0, 0, 2, 0, 0 }, { "Cadence", 0, 0, 0, 0, 2, 0, 0 } },{ "All Chars NoDLC", 0, { "Aria", 0, 0, 0, 0, 2, 0, 0 }, { "Monk", 0, 0, 0, 0, 2, 0, 0 }, { "Bolt", 0, 0, 0, 0, 2, 0, 0 }, { "Dove", 0, 0, 0, 0, 2, 0, 0 }, { "Bard", 0, 0, 0, 0, 2, 0, 0 }, { "Melody", 0, 0, 0, 0, 2, 0, 0 }, { "Eli", 0, 0, 0, 0, 2, 0, 0 }, { "Dorian", 0, 0, 0, 0, 2, 0, 0 }, { "Cadence", 0, 0, 0, 0, 2, 0, 0 } },{ "Story Mode", 0, { "Nocturna", 0, 0, 0, 0, 2, 0, 0 }, { "Cadence", 0, 0, 0, 0, 2, 0, 0 }, { "Melody", 0, 0, 0, 0, 2, 0, 0 }, { "Aria", 0, 0, 0, 0, 2, 0, 0 } },{ "All Zones", 0, { "1-1", 1, 1, 1, 1, 0, 0, 0, 0 }, { "1-2", 1, 1, 1, 2, 0, 0, 0 }, { "1-3", 1, 1, 1, 3, 0, 0, 0 }, { "1-4", 1, 1, 1, 4, 0, 0, 0 }, { "2-1", 1, 1, 2, 1, 0, 0, 0 }, { "2-2", 1, 1, 2, 2, 0, 0, 0 }, { "2-3", 1, 1, 2, 3, 0, 0, 0 }, { "2-4", 1, 1, 2, 4, 0, 0, 0 }, { "3-1", 1, 1, 3, 1, 0, 0, 0 }, { "3-2", 1, 1, 3, 2, 0, 0, 0 }, { "3-3", 1, 1, 3, 3, 0, 0, 0 }, { "3-4", 1, 1, 3, 4, 0, 0, 0 }, { "4-1", 1, 1, 4, 1, 0, 0, 0 }, { "4-2", 1, 1, 4, 2, 0, 0, 0 }, { "4-3", 1, 1, 4, 3, 0, 0, 0 }, { "4-4", 1, 1, 4, 4, 0, 0, 0 }, { "5-1", 1, 1, 5, 1, 0, 0, 0 }, { "5-2", 1, 1, 5, 2, 0, 0, 0 }, { "5-3", 1, 1, 5, 3, 0, 0, 0 }, { "5-4 Victory", 1, 1, 0, 0, 1, 0, 0 } },{ "Undeadly", 0, { "1", 1, 1, 0, 0, 3, 0, 0 }, { "2", 1, 1, 0, 0, 3, 0, 0 }, { "3", 1, 1, 0, 0, 3, 0, 0 }, { "4", 1, 1, 0, 0, 3, 0, 0 }, { "5", 1, 1, 0, 0, 3, 0, 0 }, { "6", 1, 1, 0, 0, 3, 0, 0 }, { "7", 1, 1, 0, 0, 3, 0, 0 }, { "8", 1, 1, 0, 0, 3, 0, 0 }, { "9", 1, 1, 0, 0, 3, 0, 0 }, { "10", 1, 1, 0, 0, 3, 0, 0 } }}
+local addingOrCreatingSplits = 0
+startTime = 0
+pauseTime = 0
+unpauseTime = 0
+currentPauseDuration = 0
+totalTimeAtPause = 0
+totalPauseTime = 0
+local currentSplit = 0
+isPaused = false
+isComplete = false
+staticTime = 0
+
+local function formatTime(t, leadingZero)
+  local h = math.floor(t / 3600)
+  local m = math.floor((t % 3600) / 60)
+  local s = math.floor(t % 60)
+  local cs = math.floor((t * 100) % 100)
+  if leadingZero or (m == 0 and h == 0) then
+	  if cs < 10 then
+		cs = ".0" .. cs
+	  else
+		cs = "." .. cs
+	  end
+  else
+	  cs = ""
+  end
+  if s < 10 then
+    s = "0" .. s
+  end
+  if h == 0 then
+    h = ""
+	if not leadingZero and m == 0 then
+		m = ""
+    else
+		m = m .. ":"
+	end
+  else
+    h = h .. ":"
+    if m < 10 then
+      m = "0" .. m
+    end
+  end
+  return h .. "" .. m .. "" .. s .. "" .. cs
+end
+
+local function drawSpeedrunTimer(seconds, xoff, yoff)
+	hud.drawText {
+		text = string.format("%s", type(seconds) == "number" and formatTime(seconds, true)),
+		font = ui.Font.MEDIUM,
+		element = "timer",
+		alignY = 1,
+		maxWidth = 0,
+		offsetX = xoff or 0,
+		offsetY = yoff or 0,
+		useCache = false,
+	}
+end
+
+local function drawStaticTimer(xoff, yoff, r, g, b)
+	hud.drawText {
+		text = string.format("%s", type(staticTime) == "number" and formatTime(staticTime, true)),
+		font = ui.Font.MEDIUM,
+		fillColor = {r, g, b},
+		element = "timer",
+		alignY = 1,
+		maxWidth = 0,
+		offsetX = xoff or 0,
+		offsetY = yoff or 0,
+		useCache = false,
+	}
+end
+
+
+local function drawSplitName(splitNum, xoff, yoff, r, g, b)
+	hud.drawText {
+		text = string.format("%s", savedSplits[currentSplitGroup][splitNum][1]),
+		font = ui.Font.SMALL,
+		fillColor = {r, g, b},
+		element = "timer",
+		alignY = 1,
+		maxWidth = 0,
+		offsetX = xoff or 0,
+		offsetY = yoff or 0,
+		useCache = false,
+	}
+end
+
+local function drawSplitTime(splitTime, xoff, yoff)
+	hud.drawText {
+		text = string.format("%s", formatTime(splitTime, false)),
+		font = ui.Font.SMALL,
+		element = "timer",
+		alignY = 1,
+		alignX = 0.2,
+		maxWidth = 0,
+		offsetX = xoff or 0,
+		offsetY = yoff or 0,
+		useCache = false,
+	}
+end
+
+local function drawSplitDiff(splitDiff, timeSaveOperater, xoff, yoff, r, g, b)
+	hud.drawText {
+		text = string.format("%s%s", timeSaveOperater, formatTime(splitDiff, false)),
+		font = ui.Font.SMALL,
+		fillColor = {r, g, b},
+		element = "timer",
+		alignY = 1,
+		alignX = -0.,
+		maxWidth = 0,
+		offsetX = xoff or 0,
+		offsetY = yoff or 0,
+		useCache = false,
+	}
+end
+
+local function drawLine(xoff, yoff)
+	hud.drawText {
+		text = "-----------------------",
+		font = ui.Font.SMALL,
+		element = "timer",
+		alignY = 1,
+		maxWidth = 0,
+		offsetX = xoff or 0,
+		offsetY = yoff or 0,
+		useCache = false,
+	}
+end
+
+local function drawAttemptCount(xoff, yoff)
+	hud.drawText {
+		text = savedSplits[currentSplitGroup][2],
+		font = ui.Font.SMALL,
+		element = "timer",
+		alignY = 1,
+		maxWidth = 0,
+		offsetX = xoff or 0,
+		offsetY = yoff or 0,
+		useCache = false,
+	}
+end
+
+local function pause()
+	if not isPaused then
+		if startTime==0 then
+			staticTime = 0
+		else
+			if timerModeSelector==timerModes.IGT then
+				if isDead then
+					staticTime = inGameTime-totalTimeAtPause
+				else
+					staticTime = inGameTime-totalTimeAtPause
+				end
+			else
+				staticTime = timer.getGlobalTime()-(startTime+totalPauseTime+currentPauseDuration)
+			end
+			pauseTime = timer.getGlobalTime()
+			isPaused = true
+		end
+	end
+end
+
+local function unpause()
+	if isPaused then
+		totalPauseTime = currentPauseDuration + totalPauseTime
+		currentPauseDuration = 0
+		isPaused = false
+	end
+end
+
+local function addPBSplits(count)
+	addedSplits=0
+	for i=1, count do
+		if i>2 then
+			addedSplits = addedSplits + savedSplits[currentSplitGroup][i][7]
+			splitTimes[i-2] = addedSplits
+		end
+	end
+	return addedSplits
+end
+
+local function addIndividualSplits(count)
+	addedSplits=0
+	for i=1, count do
+		addedSplits = addedSplits + individualSplitTime[i]
+		splitTimes[i] = addedSplits
+	end
+	return addedSplits
+end
+
+event.renderGlobalHUD.add("renderRTATimer", {order = "timer", sequence = -1}, function(ev)
+  	if startTime~=0 and not isPaused then
+		if timerModeSelector==timerModes.IGT then
+			inGameTime=runStartTime+SpeedrunTimer.getTime()
+			accurateInGameTime=runStartTime+SpeedrunTimer.getDeterministicTime()
+			drawSpeedrunTimer(inGameTime-totalTimeAtPause, 0, -16)
+		else
+			local seconds = timer.getGlobalTime()-(startTime+totalTimeAtPause)
+			drawSpeedrunTimer(seconds, 0, -16)
+		end
+	else
+		if isComplete then
+			drawStaticTimer(0, -16, 0, 255, 0)
+		else
+			drawStaticTimer(0, -16, 255, 255, 255)
+		end
+	end
+	if isPaused and not isDead then
+		unpauseTime = timer.getGlobalTime()
+		currentPauseDuration = unpauseTime - pauseTime
+		totalTimeAtPause = totalPauseTime + currentPauseDuration
+	end
+	
+	if currentSplitGroup>0 then
+		drawAttemptCount(0, -36-(10*(visibleSplits)))
+		for i=1, #savedSplits[currentSplitGroup] do
+			local r, g, b
+			if i==currentSplit+2 then
+				r=40
+				g=230
+				b=255
+			else
+				r=255
+				g=255
+				b=255
+			end
+			if #savedSplits[currentSplitGroup]-2>visibleSplits and currentSplit<#savedSplits[currentSplitGroup]-4 and visibleSplits~=0 then
+				drawLine(0, -41)
+			end
+			if i>2 then
+				if visibleSplits~=0 then
+					local splitTime = 0
+					if individualSplitTime[i-2]==0 then
+						addPBSplits(i)
+						splitTime = splitTimes[i-2]
+					else
+						addIndividualSplits(i-2)
+						splitTime = addedSplits
+					end
+					local diffR = 255
+					local diffG = 255
+					local diffB = 255
+					local timeSaveMulti = 1
+					local timeSaveOperater = "-"
+					if splitTime<savedSplits[currentSplitGroup][i][8] then
+						diffR=190
+						diffG=180
+						diffB=50
+						timeSaveMulti = -1
+						timeSaveOperater = "-"
+					elseif addIndividualSplits(i-2)-addPBSplits(i)<0 then
+						diffR=0
+						diffG=200
+						diffB=0
+						timeSaveMulti = -1
+						timeSaveOperater = "-"
+					else
+						diffR=200
+						diffG=0
+						diffB=0
+						timeSaveOperater = "+"
+					end
+					if i==#savedSplits[currentSplitGroup] then --final split
+						drawSplitName(i, 0, -36, r, g, b)
+						drawSplitTime(splitTime, 40, -36)
+						if currentSplit>i-2 and savedSplits[currentSplitGroup][i][7]~=0 and (not isComplete) then
+							drawSplitDiff((addIndividualSplits(i-2)-addPBSplits(i))*timeSaveMulti, timeSaveOperater, 40, -36, diffR, diffG, diffB)
+						end
+					elseif currentSplit<visibleSplits-2 and i-2<visibleSplits then --first x splits
+						drawSplitName(i, 0, -36-(10*(visibleSplits-i+2)), r, g, b)
+						drawSplitTime(splitTime, 40, -36-(10*(visibleSplits-i+2)))
+						if currentSplit>i-2 and savedSplits[currentSplitGroup][i][7]~=0 and (not isComplete) then
+							drawSplitDiff((addIndividualSplits(i-2)-addPBSplits(i))*timeSaveMulti, timeSaveOperater, 40, -36-(10*(visibleSplits-i+2)), diffR, diffG, diffB)
+						end
+					elseif currentSplit<#savedSplits[currentSplitGroup]-3 and i-2>currentSplit-visibleSplits+2  and i-2<currentSplit+2 then --midway splits
+						drawSplitName(i, 0, -36-(10*(visibleSplits-i+4+currentSplit-visibleSplits)), r, g, b)
+						drawSplitTime(splitTime, 40, -36-(10*(visibleSplits-i+4+currentSplit-visibleSplits)))
+						if currentSplit>i-2 and savedSplits[currentSplitGroup][i][7]~=0 and (not isComplete) then
+							drawSplitDiff((addIndividualSplits(i-2)-addPBSplits(i))*timeSaveMulti, timeSaveOperater, 40, -36-(10*(visibleSplits-i+4+currentSplit-visibleSplits)), diffR, diffG, diffB)
+						end
+					elseif currentSplit>=#savedSplits[currentSplitGroup]-3 and i>#savedSplits[currentSplitGroup]-visibleSplits then --final x splits
+						drawSplitName(i, 0, -36-(10*(#savedSplits[currentSplitGroup]-i)), r, g, b)
+						drawSplitTime(splitTime, 40, -36-(10*(#savedSplits[currentSplitGroup]-i)))
+						if currentSplit>i-2 and savedSplits[currentSplitGroup][i][7]~=0 and (not isComplete) then
+							drawSplitDiff((addIndividualSplits(i-2)-addPBSplits(i))*timeSaveMulti, timeSaveOperater, 40, -36-(10*(#savedSplits[currentSplitGroup]-i)), diffR, diffG, diffB)
+						end
+					end
+				end
+			end
+		end
+	end
+end)
+
+local function split()
+	if timerModeSelector==timerModes.IGT then
+		if (not isComplete) then
+			splitTimes[currentSplit]=accurateInGameTime-totalTimeAtPause
+			if currentSplit==1 then
+				individualSplitTime[currentSplit]=accurateInGameTime-totalTimeAtPause
+			elseif currentSplit>1 then
+				addIndividualSplits(currentSplit-1)
+				individualSplitTime[currentSplit]=splitTimes[currentSplit]-addedSplits
+			end	
+			currentSplit=currentSplit+1
+			if currentSplit==#savedSplits[currentSplitGroup]-1 then
+				averages[currentSplitGroup][1] = averages[currentSplitGroup][1] + addIndividualSplits(currentSplit-1)
+				averages[currentSplitGroup][2] = averages[currentSplitGroup][2] + 1
+				isComplete = true
+				isPaused = true
+				staticTime = inGameTime-totalTimeAtPause
+				if currentSplitGroup>0 and currentSplit>0 then
+					if (addPBSplits(#savedSplits[currentSplitGroup])>staticTime or savedSplits[currentSplitGroup][#savedSplits[currentSplitGroup]][7]==0) and isComplete then
+						Menu.open("saveSplitsPrompt")
+					end
+				end
+			end
+		end
+	else
+		if (not isComplete) then
+			splitTimes[currentSplit]=timer.getGlobalTime()-(startTime+totalPauseTime+currentPauseDuration)
+			if currentSplit==1 then
+				individualSplitTime[currentSplit]=timer.getGlobalTime()-(startTime+totalPauseTime+currentPauseDuration)
+			elseif currentSplit>1 then
+				addIndividualSplits(currentSplit-1)
+				individualSplitTime[currentSplit]=splitTimes[currentSplit]-addedSplits
+			end	
+			currentSplit=currentSplit+1
+			if currentSplit==#savedSplits[currentSplitGroup]-1 then
+				averages[currentSplitGroup][1] = averages[currentSplitGroup][1] + addIndividualSplits(currentSplit-1)
+				averages[currentSplitGroup][2] = averages[currentSplitGroup][2] + 1
+				isComplete = true
+				isPaused = true
+				staticTime = timer.getGlobalTime()-(startTime+totalPauseTime+currentPauseDuration)
+				if currentSplitGroup>0 and currentSplit>0 then
+					if (addPBSplits(#savedSplits[currentSplitGroup])>staticTime or savedSplits[currentSplitGroup][#savedSplits[currentSplitGroup]][7]==0) and isComplete then
+						Menu.open("saveSplitsPrompt")
+					end
+				end
+			end
+		end
+	end
+end
+
+local START_TIMER_HOTKEY, startTimerHotkey = CustomActions.registerHotkey {
+    id = "startTimerHotkey",
+    name = "Start/Split",
+    keyBinding = "numpad1",
+	perPlayerBinding = true,
+    enableIf = function (playerID)
+        return true
+    end,
+
+    callback = function (playerID)
+		if currentSplit==0 then
+			startTime = timer.getGlobalTime()
+			if currentSplitGroup>0 then
+				savedSplits[currentSplitGroup][2] = savedSplits[currentSplitGroup][2]+1
+			end
+			currentSplit=1
+		elseif  currentSplitGroup>0 then
+			if currentSplit<#(savedSplits[currentSplitGroup]) then
+				split()
+			end
+		end
+		return true
+	end,
+}
+
+local PAUSE_TIMER_HOTKEY, pauseTimerHotkey = CustomActions.registerHotkey {
+    id = "pauseTimerHotkey",
+    name = "Pause/Continue",
+    keyBinding = "numpad2",
+	perPlayerBinding = true,
+    enableIf = function (playerID)
+        return true
+    end,
+
+    callback = function (playerID)
+		if (not isPaused and currentSplit>0) then
+			pause()
+		else
+			unpause()
+		end
+		return true
+	end,
+}
+
+local RESET_TIMER_HOTKEY, resetTimerHotkey = CustomActions.registerHotkey {
+    id = "resetTimerHotkey",
+    name = "Reset Timer",
+    keyBinding = "numpad3",
+	perPlayerBinding = true,
+    enableIf = function (playerID)
+        return true
+    end,
+
+    callback = function (playerID)
+		local saveBest = false
+		if currentSplitGroup>0 then
+			for i=1, #savedSplits[currentSplitGroup] do
+				if i>2 then
+					if individualSplitTime[i-2]~=0 and (savedSplits[currentSplitGroup][i][8] > individualSplitTime[i-2] or savedSplits[currentSplitGroup][i][8]==0) then
+						saveBest = true
+					end
+				end
+			end
+		end
+		if saveBest then
+			Menu.open("saveBestSplitsPrompt")
+		else
+			if currentSplitGroup>0 then
+				for i=3, #(savedSplits[currentSplitGroup]) do
+					addPBSplits(i)
+					splitTimes[i-2] = addedSplits
+					individualSplitTime[i-2] = 0
+				end
+			end
+		end
+		currentSplit = 0
+		inGameTime = 0
+		startTime = 0
+		pauseTime = 0
+		unpauseTime = 0
+		currentPauseDuration = 0
+		totalTimeAtPause = 0
+		totalPauseTime = 0
+		runStartTime = 0
+		isDead=false
+		isPaused = false
+		isComplete = false
+		staticTime = 0
+		return true
+	end,
+}
+
+local UNDO_SPLIT_HOTKEY, undoSplitHotkey = CustomActions.registerHotkey {
+    id = "undoSplitHotkey",
+    name = "Undo Split",
+    keyBinding = "numpad4",
+	perPlayerBinding = true,
+    enableIf = function (playerID)
+        return true
+    end,
+
+    callback = function (playerID)
+		if currentSplitGroup>0 and currentSplit>1 and not isComplete then
+			currentSplit = currentSplit-1
+			splitTimes[currentSplit] = 0
+			individualSplitTime[currentSplit] = 0
+		end
+		return true
+	end,
+}
+
+event.objectDeath.add("stopTimerDeath", {order="dead", sequence=-5}, function(ev)
+	if Player.isAlone() and ev.entity.lowPercent and isDead==false and timerModeSelector==timerModes.IGT then
+		pause()
+		isDead=true
+	end
+end)
+
+event.gameStateLevel.add("updateIGT", {order="levelLoadingDone", sequence=5}, function(ev)
+	if CurrentLevel.getNumber()==1 and not CurrentLevel.isLobby() then
+		runStartTime=inGameTime
+	end
+end)
+
+event.gameStateLevel.add("updateIGTLobby", {order="levelLoadingDone", sequence=5}, function(ev)
+	if CurrentLevel.getNumber()==1 and CurrentLevel.isLobby() then
+		runStartTime=inGameTime
+	end
+end)
+event.gameStateLevel.add("autoStart", {order="levelLoadingDone", sequence=5}, function(ev)
+	if timerModeSelector==timerModes.IGT and not isComplete and isPaused then
+		unpause()
+		isDead=false
+	end
+	if CurrentLevel.getNumber()==1 and currentSplit==0 and not (CurrentLevel.isLobby()) then
+		startTime = timer.getGlobalTime()
+		currentSplit=1
+		if currentSplitGroup>0 then
+			savedSplits[currentSplitGroup][2] = savedSplits[currentSplitGroup][2]+1
+		end
+	end
+end)
+
+event.levelComplete.add("autoSplitLevel", {order="dad", sequence=1}, function(ev)
+	if currentSplitGroup>0 and currentSplit>0 and currentSplit<#savedSplits[currentSplitGroup]-1 then
+		if CurrentLevel.getDepth()==savedSplits[currentSplitGroup][currentSplit+2][4] and CurrentLevel.getFloor()==savedSplits[currentSplitGroup][currentSplit+2][5] then
+			split()
+		end
+	end
+end)
+
+event.gameStateLevel.add("autoSplitLevel", {order="currentLevel", sequence=1}, function(ev)
+	
+end)
+
+event.runComplete.add("autoSplitVictory", {order="loop", sequence=1}, function (ev)
+	if ev.summary.victory then
+		if currentSplitGroup>0 and currentSplit>0 and not CurrentLevel.isSafe() then
+			if currentSplit<#savedSplits[currentSplitGroup]-1 then
+				dbg(savedSplits[currentSplitGroup][currentSplit+2])
+				if savedSplits[currentSplitGroup][currentSplit+2][6]==1 then
+					split()
+				end
+			end
+		end
+	end
+end)
+
+event.levelLoopComplete.add("autoSplitMultiChar", {order="victory", sequence=1}, function (ev)
+	if currentSplitGroup>0 and currentSplit>0 and not CurrentLevel.isSafe() and ev.victory then
+		if currentSplit<#savedSplits[currentSplitGroup]-1 then
+			if savedSplits[currentSplitGroup][currentSplit+2][6]==2 then
+				split()
+			end
+		end
+	end
+end)
+
+event.levelLoopReset.add("autoSplitDeathless", {order = "runState", sequence = 1}, function(ev)
+	if currentSplitGroup>0 and currentSplit>0 then
+		if savedSplits[currentSplitGroup][currentSplit+2][6]==3 and not CurrentLevel.isSafe() then
+			split()
+		end
+	end
+end)
+
+local function removeSplitFromGroup(split)
+	for i=1, #savedSplits[currentSplitGroup] do
+		if i==split then
+			utils.arrayRemove(savedSplits[currentSplitGroup], savedSplits[currentSplitGroup][i])
+		end
+	end
+end
+
+local function removeSplit(split)
+	for i=1, #splitGroup do
+		if i==split then
+			utils.arrayRemove(splitGroup, splitGroup[i])
+		end
+	end
+end
+
+local function saveSplit()
+	splitName=splitNameText
+	if splitTypeSelector==splitTypes.MANUAL then
+		splitType = 0
+		clearType = 0
+		depth = 0
+		level = 0
+		mode = 0
+	elseif splitTypeSelector==splitTypes.CLEAR and clearTypeSelector==clearTypes.LEVEL then
+		splitType = splitTypeSelector
+		clearType = clearTypeSelector
+		depth = depthSelector
+		level = levelSelector
+		mode = 0
+	elseif splitTypeSelector==splitTypes.CLEAR and clearTypeSelector==clearTypes.VICTORY then
+			splitType = splitType
+			clearType = clearType
+			depth = 0
+			level = 0
+			mode = modeSelector
+	end
+	
+	splitTimes[#splitTimes+1] = 0
+	individualSplitTime[#individualSplitTime+1] = 0
+	local split = {splitName, splitType, clearType, depth, level, mode, 0, 0}
+	
+	if addingOrCreatingSplits==1 then
+		savedSplits[currentSplitGroup][#savedSplits[currentSplitGroup]+1] = split
+	elseif addingOrCreatingSplits==2 then
+		splitGroup[#splitGroup+1] = split
+	end
+	
+end
+
+local function removeAllSplitsFromGroup()
+	splitGroup = {}
+end
+
+local function removeAllSplitsFromExistingGroup()
+	for i=2, #savedSplits[currentSplitGroup] do
+		utils.arrayRemove(savedSplits[currentSplitGroup], savedSplits[currentSplitGroup][2])
+	end
+end
+
+local function reorderSplits(selected, location)
+	local reorderedSplits = {}
+	for i=1, #savedSplits[currentSplitGroup] do
+		if i<3 then
+			reorderedSplits[i] = savedSplits[currentSplitGroup][i]
+		elseif selected>location then
+			if i==location then
+				reorderedSplits[i] = savedSplits[currentSplitGroup][selected]
+			elseif i>location and i<=selected then
+				reorderedSplits[i] = savedSplits[currentSplitGroup][i-1]
+			else
+				reorderedSplits[i] = savedSplits[currentSplitGroup][i]
+			end
+		elseif location>selected then
+			if i<location and i>=selected then
+				reorderedSplits[i] = savedSplits[currentSplitGroup][i+1]
+			elseif i==location then
+				reorderedSplits[i] = savedSplits[currentSplitGroup][selected]
+			else
+				reorderedSplits[i] = savedSplits[currentSplitGroup][i]
+			end
+		end
+	end
+	savedSplits[currentSplitGroup] = reorderedSplits
+end
+
+
+-- MENU
+
+event.menu.add("saveSplits", "saveSplitsPrompt", function (ev)
+	local entries = {}
+	ev.menu = {}
+	ev.menu.escapeAction = function()
+		Menu.close()
+	end
+	
+	entries[#entries + 1] = {
+		label = "You beat your PB, would you like to save your times?",
+	}
+	
+	entries[#entries + 1] = {
+        id = "yes",
+        label = "YES",
+        action = function()
+			for i=1, #savedSplits[currentSplitGroup] do
+				if i>2 then
+					savedSplits[currentSplitGroup][i][7] = individualSplitTime[i-2]
+				end
+			end
+			Menu.close()
+		end,
+    }
+	
+	entries[#entries + 1] = {
+        id = "no",
+        label = "NO",
+        action = function()
+			ev.menu.escapeAction()
+		end,
+    }
+	
+	ev.menu.entries = entries
+	
+end)
+
+event.menu.add("saveBestSplits", "saveBestSplitsPrompt", function (ev)
+	local entries = {}
+	ev.menu = {}
+	ev.menu.escapeAction = function()
+		if currentSplitGroup>0 then
+			for i=3, #(savedSplits[currentSplitGroup]) do
+				addPBSplits(i)
+				splitTimes[i-2] = addedSplits
+				individualSplitTime[i-2] = 0
+			end
+		end
+		Menu.close()
+	end
+	
+	entries[#entries + 1] = {
+		label = "You beat at least one of your best individual times, would you like to save your times?",
+	}
+	
+	entries[#entries + 1] = {
+        id = "yes",
+        label = "YES",
+        action = function()
+			dbg("start")
+			for i=1, #savedSplits[currentSplitGroup] do
+				if i>2 then
+					dbg(savedSplits[currentSplitGroup][i][8], individualSplitTime[i-2])
+					if (savedSplits[currentSplitGroup][i][8] > individualSplitTime[i-2] or savedSplits[currentSplitGroup][i][8]==0) then
+						savedSplits[currentSplitGroup][i][8] = individualSplitTime[i-2]
+					end
+				end
+			end
+			if currentSplitGroup>0 then
+				for i=3, #(savedSplits[currentSplitGroup]) do
+					addPBSplits(i)
+					splitTimes[i-2] = addedSplits
+					individualSplitTime[i-2] = 0
+				end
+			end
+			Menu.close()
+		end,
+    }
+	
+	entries[#entries + 1] = {
+        id = "no",
+        label = "NO",
+        action = function()
+			ev.menu.escapeAction()
+		end,
+    }
+	
+	ev.menu.entries = entries
+	
+end)
+
+event.menu.add("customiseTimer", {key = "pause", sequence = 1}, function (ev)
+    if ev.menu and ev.menu.entries then
+        ev.menu = utils.deepCopy(ev.menu)
+        table.insert(ev.menu.entries, 2, {
+            label = "Select Splits",
+            action = function ()
+				if startTime==0 then
+					Menu.open("selectSplitGroup")
+				else
+					Menu.open("timerWarning")
+				end
+            end,
+        })
+    end
+end)
+
+event.menu.add("timerWarning", "timerWarning", function (ev)
+	local entries = {}
+	ev.menu = {}
+	
+	entries[#entries + 1] = {
+		label = "You must reset the timer before accessing this menu",
+	}
+	
+	entries[#entries + 1] = {
+        id = "back",
+        label = "Back",
+        action = function()
+			Menu.close()
+		end,
+    }
+	
+	ev.menu.entries = entries
+	
+end)
+
+selectedSplit = 0
+event.menu.add("editGroup", "editSplitGroup", function (ev)
+	local entries = {}
+	ev.menu = {}
+	ev.menu.label = "Splits"
+	
+	ev.menu.escapeAction = function()
+		savedSplits[currentSplitGroup][1] = splitGroupNameText
+		selectedSplit = 0
+		Menu.updateAll()
+		Menu.close()
+	end
+	
+	entries[#entries+1] = SettingsMenu.createEntry("mod.NecroSplit.splitGroupName")
+	settingsStorage.set("mod.NecroSplit.splitGroupName", savedSplits[currentSplitGroup][1], Settings.Layer.LOCAL)
+	
+	local addingPB = 0
+	for i, split in ipairs(savedSplits[currentSplitGroup]) do
+		if i>2 and split~=nil then
+			addingPB = addingPB + split[7]
+			if i-2~=selectedSplit then
+				table.insert(entries, {
+					label = string.format("%s     			     %s     			     %s", formatTime(split[8], false), split[1], formatTime(addingPB, false)),
+					font = smallLowercaseFont,
+					action = function()
+						if selectedSplit==0 then
+							selectedSplit = Menu.getCurrent().selection-1
+							Menu.update()
+						elseif selectedSplit~=(Menu.getCurrent().selection)-1 then
+							reorderSplits(selectedSplit+2, Menu.getCurrent().selection+1)
+							selectedSplit = 0
+							Menu.update()
+						end
+					end,
+				})
+			else
+				table.insert(entries, {
+					label = string.format("%s     			     %s     			     %s", formatTime(split[8], false), split[1], formatTime(addingPB, false)),
+					action = function()
+						if selectedSplit==0 then
+							selectedSplit = (Menu.getCurrent().selection)-1
+							Menu.update()
+						elseif selectedSplit~=(Menu.getCurrent().selection)-1 then
+							reorderSplits(selectedSplit+2, Menu.getCurrent().selection+1)
+							selectedSplit = 0
+							Menu.update()
+						end
+					end,
+				})
+			end
+		end
+	end
+	dbg(averages[currentSplitGroup])
+	local averageTime = 0
+	if averages[currentSplitGroup][1]~=0 then
+		averageTime = averages[currentSplitGroup][1]/averages[currentSplitGroup][2]
+	end
+	
+	entries[#entries + 1] = {
+        id = "average",
+        label = string.format("Average time = %s", formatTime(averageTime, true)),
+		font = smallLowercaseFont,
+        action = function()
+			
+		end,
+    }
+	
+	entries[#entries + 1] = {
+        id = "add",
+        label = "Add Split",
+		font = smallLowercaseFont,
+        action = function()
+			addingOrCreatingSplits=1
+			Menu.open("createSplits")
+		end,
+    }
+	
+	entries[#entries + 1] = {
+        id = "resetAttempts",
+        label = "Reset Attempt Counter",
+		font = smallLowercaseFont,
+        action = function()
+			savedSplits[currentSplitGroup][2] = 0
+			Menu.update()
+		end,
+    }
+	
+	entries[#entries + 1] = {
+        id = "remove",
+        label = "Remove Selected Split",
+        action = function()
+			removeSplitFromGroup(selectedSplit+2)
+			selectedSplit=0
+			Menu.update()
+		end,
+    }
+	
+	entries[#entries + 1] = {
+        id = "remove",
+        label = "Delete Split Group",
+        action = function()
+			utils.arrayRemove(savedSplits, savedSplits[currentSplitGroup])
+			utils.arrayRemove(averages, currentSplitGroup)
+			currentSplitGroup=0
+			Menu.close()
+			Menu.updateAll()
+		end,
+    }
+	
+	entries[#entries + 1] = {
+        id = "_back",
+        label = "Back",
+        action = function()
+			savedSplits[currentSplitGroup][1] = splitGroupNameText
+			selectedSplit = 0
+			Menu.updateAll()
+			Menu.close()
+		end,
+        sound = "UIBack",
+    }
+	
+	ev.menu.entries = entries
+	
+end)
+
+event.menu.add("selectSplitGroup", "selectSplitGroup", function (ev)
+	local entries = {}
+	ev.menu = {}
+	ev.menu.label = "Splits"
+
+	if not (savedSplits==nil) then
+		for i, group in ipairs(savedSplits) do
+			table.insert(entries, {
+				label = string.format("%s", group[1]),
+				font = smallLowercaseFont,
+				action = function()
+					currentSplitGroup = Menu.getCurrent().selection
+					splitTimes = {}
+					individualSplitTime = {}
+					for i=1, #savedSplits[currentSplitGroup] do
+						splitTimes[i] = 0
+						individualSplitTime[i] = 0
+					end
+					Menu.open("editSplitGroup")
+				end,
+			})
+		end
+	end
+	
+	entries[#entries + 1] = {
+        id = "add",
+        label = "Create New Splits",
+        action = function()
+			splitGroup = {}
+			Menu.open("createSplitGroup")
+		end,
+    }
+	
+	entries[#entries + 1] = {
+		id = "preset",
+		label = "Select Preset Splits",
+		action = function()
+			Menu.open("selectPresets")
+		end,
+	}
+	
+	entries[#entries + 1] = {
+        id = "deselect",
+        label = "Deselect Current Splits",
+        action = function()
+			currentSplitGroup=0
+		end,
+    }
+	
+	entries[#entries + 1] = {
+        id = "_back",
+        label = "Back",
+        action = Menu.close,
+        sound = "UIBack",
+    }
+	
+	ev.menu.entries = entries
+end)
+
+event.menu.add("presets", "selectPresets", function (ev)
+	local entries = {}
+	ev.menu = {}
+	ev.menu.label = "Presets"
+	
+	for i, group in ipairs(presets) do
+		table.insert(entries, {
+			label = string.format("%s", group[1]),
+			font = smallLowercaseFont,
+			action = function()
+				savedSplits[#savedSplits+1] = presets[Menu.getCurrent().selection]
+				currentSplitGroup = #savedSplits
+				splitTimes = {}
+				individualSplitTime = {}
+				for i=1, #savedSplits[currentSplitGroup] do
+					splitTimes[i] = 0
+					individualSplitTime[i] = 0
+				end
+				Menu.close()
+				Menu.updateAll()
+			end,
+		})
+	end
+	
+	entries[#entries + 1] = {
+        id = "_back",
+        label = "Back",
+        action = Menu.close,
+        sound = "UIBack",
+    }
+	
+	ev.menu.entries = entries
+	
+end)
+
+splitGroupNameText = Settings.user.string {
+	id = "splitGroupName",
+	name = "Split group name",
+	maxLength = 20,
+	visibility = 1,
+}
+
+event.menu.add("splits", "createSplitGroup", function (ev)
+	local entries = {}
+	
+	entries[#entries+1] = SettingsMenu.createEntry("mod.NecroSplit.splitGroupName")
+	splitGroup[1] = "group"
+	splitGroup[2] = 0
+	
+	for i, split in ipairs(splitGroup) do
+		if i>2 then
+			table.insert(entries, {
+				label = string.format("%s", split[1]),
+				font = smallLowercaseFont,
+				action = function()
+					removeSplit(Menu.getCurrent().selection+1)
+					Menu.update()
+					Menu.changeSelection(1, true)
+				end,
+			})
+		end
+	end
+	
+	splitGroup[1] = splitGroupNameText
+	
+	entries[#entries + 1] = {
+        id = "add",
+        label = "Add Split",
+		font = smallLowercaseFont,
+        action = function()
+			addingOrCreatingSplits=2
+			Menu.open("createSplits")
+		end,
+    }
+	
+	entries[#entries + 1] = {
+        id = "reset",
+        label = "Remove All Splits",
+		font = smallLowercaseFont,
+        action = function()
+			removeAllSplitsFromGroup()
+			splitGroup[1] = splitGroupNameText
+			Menu.update()
+		end,
+    }
+	
+	entries[#entries + 1] = {
+        id = "finish",
+        label = "Finish",
+        action = function()
+			splitGroup[1] = splitGroupNameText
+			splitGroup[2] = 0
+			if savedSplits==nil then
+				savedSplits[1] = splitGroup
+			else
+				savedSplits[#savedSplits+1] = splitGroup
+			end
+			currentSplitGroup=#savedSplits
+			averages[currentSplitGroup] = {0, 0}
+			Menu.updateAll()
+			Menu.close()
+		end,
+    }
+	
+	entries[#entries + 1] = {
+        id = "_back",
+        label = "Back",
+        action = Menu.close,
+        sound = "UIBack",
+    }
+	
+    ev.menu = {
+        label = "New Splits",
+        entries = entries,
+    }
+end)
+
+splitNameText = Settings.user.string {
+	id = "splitName",
+	name = "Split name",
+	maxLength = 10,
+	visibility = 1,
+}
+
+splitTypes = {MANUAL=0, CLEAR=1}--, ACHIEVE_WIP=2}
+splitTypeSelector = Settings.user.enum {
+	id = "splitType",
+	name = "Split type",
+	enum = Enum.sequence(splitTypes),
+	default = splitTypes.MANUAL,
+	order = 1,
+	visibility = 1,
+}
+
+clearTypes = {LEVEL=1, VICTORY=2}
+clearTypeSelector = Settings.user.enum {
+	id = "clearType",
+	name = "Clear type",
+	enum = Enum.sequence(clearTypes),
+	default = clearTypes.LEVEL,
+	order = 1,
+	visibility = 1,
+}
+
+depthSelector = Settings.user.number {
+	id = "depth",
+	name = "Depth",
+	default = 1,
+	order = 1,
+	minimum = 1,
+	maximum = 5,
+	visibility = 1,
+}
+
+levelSelector = Settings.user.number {
+	id = "level",
+	name = "Level",
+	default = 1,
+	order = 1,
+	minimum = 1,
+	maximum = 4,
+	visibility = 1,
+}
+
+mode = {ALL_ZONES=1, MULTI_CHAR=2, DEATHLESS=3}
+modeSelector = Settings.user.enum {
+	id = "mode",
+	name = "Run type",
+	enum = Enum.sequence(mode),
+	default = mode.ALL_ZONES,
+	order = 1,
+	visibility = 1,
+}
+
+
+event.menu.add("createSplits", "createSplits", function (ev)
+	local entries = {}
+	ev.menu = {}
+	ev.menu.label = "Splits"
+	local initialSplit = splitTypeSelector
+	local initialClear = clearTypeSelector
+	
+	ev.menu.tickCallback = function()
+		if initialSplit~=splitTypeSelector or initialClear~=clearTypeSelector then
+			Menu.update()
+		end
+	end	
+	
+	ev.menu.escapeAction = function()
+		RemoteSettings.upload()
+		Menu.close()
+	end
+	
+	entries[#entries+1] = SettingsMenu.createEntry("mod.NecroSplit.splitName")
+	entries[#entries+1] = SettingsMenu.createEntry("mod.NecroSplit.splitType")
+	
+	if splitTypeSelector==splitTypes.CLEAR then
+		entries[#entries+1] = SettingsMenu.createEntry("mod.NecroSplit.clearType")
+		if clearTypeSelector==clearTypes.LEVEL then
+			entries[#entries+1] = SettingsMenu.createEntry("mod.NecroSplit.depth")
+			entries[#entries+1] = SettingsMenu.createEntry("mod.NecroSplit.level")
+		elseif clearTypeSelector==clearTypes.VICTORY then
+			entries[#entries+1] = SettingsMenu.createEntry("mod.NecroSplit.mode")
+		end
+	end
+	
+	entries[#entries + 1] = {
+        id = "finish",
+        label = "Finish",
+        action = function()
+			saveSplit()
+			Menu.updateAll()
+			Menu.close()
+		end,
+    }
+	
+	entries[#entries + 1] = {
+        id = "_back",
+        label = "Back",
+        action = ev.menu.escapeAction,
+        sound = "UIBack",
+    }
+	
+	ev.menu.entries = entries
+    
+end)
+
+
+
+visibleSplits = Settings.shared.number {
+	id = "visibleSplits",
+	name = "Visible splits",
+	default = 10,
+	order = 1,
+	minimum = 0,
+	maximum = 30,
+}
+
+timerModes = {IGT=1, RTA=2}
+timerModeSelector = Settings.shared.enum {
+	id = "timerMode",
+	name = "IGT or RTA",
+	enum = Enum.sequence(timerModes),
+	default = timerModes.IGT,
+	order = 1,
+}
+

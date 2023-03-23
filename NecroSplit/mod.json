@@ -1,0 +1,20 @@
+{
+	"namespace": "NecroSplit",
+	"displayName": "NecroSplit",
+	"version": "1.5.1",
+	"synchronyVersion": "3.6.0",
+	"description": "I heard some people like to speedrun this game so here's a timer with automatic starting and splits.",
+	"author": "Tufwfo",
+	"dependencies": {},
+	"api": {"scriptPath":""},
+	"icon": "NecroSplitIcon.png",
+	"banner": "NecroSplitBanner.png",
+	"tags": [],
+	"name": "NecroSplit_io_2855366",
+	"changelog": "",
+	"homepageURL": "https://mod.io/g/crypt/m/necrosplit",
+	"modioID": "2855366",
+	"modioUserID": 1617400,
+	"pendingVersion": "1.5.1",
+	"visibility": 0
+}
